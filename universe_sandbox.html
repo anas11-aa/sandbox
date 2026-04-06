@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Universe Sandbox</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600&family=Share+Tech+Mono&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Rajdhani',sans-serif}
+#wrap{display:flex;height:100vh}
+#canvas{flex:1;display:block;cursor:crosshair}
+
+/* ── SIDEBAR ── */
+#panel{
+  width:230px;
+  background:linear-gradient(180deg,#0d0f14 0%,#0a0c10 100%);
+  border-left:1px solid #1c2030;
+  display:flex;flex-direction:column;gap:0;
+  overflow-y:auto;overflow-x:hidden;
+  flex-shrink:0;
+}
+#panel::-webkit-scrollbar{width:3px}
+#panel::-webkit-scrollbar-thumb{background:#1e2535}
+
+.panel-header{
+  padding:14px 14px 10px;
+  border-bottom:1px solid #1a2030;
+  background:linear-gradient(135deg,#0e1220 0%,#0a0d18 100%);
+}
+.panel-logo{
+  font-family:'Rajdhani',sans-serif;
+  font-size:15px;font-weight:600;
+  color:#e0e8ff;letter-spacing:0.15em;text-transform:uppercase;
+}
+.panel-sub{
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;color:#334;letter-spacing:0.2em;margin-top:2px;
+}
+
+.section{padding:10px 12px;border-bottom:1px solid #111820;}
+.section-title{
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;color:#3a5080;letter-spacing:0.18em;text-transform:uppercase;
+  margin-bottom:7px;
+}
+
+/* body type grid */
+.body-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.body-btn{
+  background:#0c1018;
+  border:1px solid #1a2535;
+  color:#8899bb;
+  font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:500;
+  padding:6px 5px;border-radius:3px;cursor:pointer;
+  display:flex;align-items:center;gap:5px;
+  transition:all 0.15s;user-select:none;
+  line-height:1;
+}
+.body-btn:hover{background:#131a28;border-color:#2a3a55;color:#aac0e0}
+.body-btn.active{
+  background:#0f1e38;
+  border-color:#2a5098;
+  color:#7ab0ff;
+  box-shadow:0 0 8px rgba(40,100,220,0.2) inset;
+}
+.body-btn .dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+
+/* sliders */
+.ctrl{margin-bottom:8px}
+.ctrl:last-child{margin-bottom:0}
+.ctrl-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.ctrl-label{font-family:'Share Tech Mono',monospace;font-size:9px;color:#445;letter-spacing:0.1em}
+.ctrl-val{font-family:'Share Tech Mono',monospace;font-size:10px;color:#6688aa}
+input[type=range]{
+  width:100%;height:2px;
+  -webkit-appearance:none;appearance:none;
+  background:linear-gradient(90deg,#1a3a6a var(--pct,50%),#111820 var(--pct,50%));
+  border-radius:1px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:10px;height:10px;border-radius:50%;
+  background:#4488dd;border:1px solid #6aacff;box-shadow:0 0 6px rgba(80,160,255,0.5);
+}
+
+/* speed buttons */
+.speed-row{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.spd-btn{
+  background:#0c1018;border:1px solid #1a2535;color:#445;
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  padding:5px 2px;border-radius:3px;cursor:pointer;text-align:center;
+  transition:all 0.12s;user-select:none;
+}
+.spd-btn:hover{background:#131a22;color:#667}
+.spd-btn.active{background:#0f1e30;border-color:#1a4070;color:#4488cc}
+
+/* action buttons */
+.action-btn{
+  width:100%;background:#0c1018;border:1px solid #1a2535;
+  color:#778899;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:500;
+  padding:7px 10px;border-radius:3px;cursor:pointer;text-align:left;
+  transition:all 0.12s;user-select:none;margin-bottom:3px;letter-spacing:0.05em;
+  display:flex;align-items:center;gap:6px;
+}
+.action-btn:hover{background:#131a28;border-color:#253545;color:#99aabb}
+.action-btn.explode-btn{border-color:#2a1a0a;color:#cc7733}
+.action-btn.explode-btn:hover{background:#1a1005;border-color:#3a2510;color:#ee9944}
+.action-btn.danger-btn{border-color:#2a0a0a;color:#cc4444}
+.action-btn.danger-btn:hover{background:#1a0505;border-color:#3a1515;color:#ee6666}
+.action-btn .ab-icon{font-size:12px}
+
+/* stats */
+.stats-row{display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #111820}
+.stat-item{text-align:center}
+.stat-num{font-family:'Share Tech Mono',monospace;font-size:13px;color:#4488cc;display:block}
+.stat-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:#2a3a50;letter-spacing:0.1em;text-transform:uppercase}
+
+.hint-text{
+  font-family:'Share Tech Mono',monospace;font-size:8px;color:#1e2a3a;
+  line-height:1.7;padding:8px 12px;
+}
+
+/* selected body info */
+#sel-info{
+  padding:8px 12px;border-bottom:1px solid #111820;
+  display:none;
+}
+#sel-info.visible{display:block}
+.sel-name{font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;color:#7ab0ff;letter-spacing:0.1em}
+.sel-data{font-family:'Share Tech Mono',monospace;font-size:9px;color:#3a5070;margin-top:2px;line-height:1.6}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="canvas"></canvas>
+<div id="panel">
+
+  <div class="panel-header">
+    <div class="panel-logo">Universe Sandbox</div>
+    <div class="panel-sub">GRAVITY SIMULATOR v2</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Add Body</div>
+    <div class="body-grid" id="bodyGrid">
+      <div class="body-btn active" onclick="setType('planet',this)" data-type="planet"><span class="dot" style="background:radial-gradient(circle at 35% 35%,#6aadff,#1a5fc8,#0a2a70)"></span>Planet</div>
+      <div class="body-btn" onclick="setType('star',this)" data-type="star"><span class="dot" style="background:radial-gradient(circle at 35% 35%,#fff8cc,#ffcc33,#ff7700)"></span>Star</div>
+      <div class="body-btn" onclick="setType('giant',this)" data-type="giant"><span class="dot" style="background:radial-gradient(circle at 35% 35%,#ffbbaa,#cc4422,#661100)"></span>Red Giant</div>
+      <div class="body-btn" onclick="setType('neutron',this)" data-type="neutron"><span class="dot" style="background:radial-gradient(circle at 35% 35%,#ffffff,#aaddff,#2255aa)"></span>Neutron★</div>
+      <div class="body-btn" onclick="setType('blackhole',this)" data-type="blackhole"><span class="dot" style="background:#000;border:1px solid #9922cc;box-shadow:0 0 4px #7700cc"></span>Black Hole</div>
+      <div class="body-btn" onclick="setType('asteroid',this)" data-type="asteroid"><span class="dot" style="background:radial-gradient(circle,#998877,#554433)"></span>Asteroid</div>
+      <div class="body-btn" onclick="setType('comet',this)" data-type="comet"><span class="dot" style="background:radial-gradient(circle at 35% 35%,#ffffff,#aaeeff,#336688)"></span>Comet</div>
+      <div class="body-btn" onclick="setType('nebula',this)" data-type="nebula"><span class="dot" style="background:radial-gradient(circle,rgba(180,80,255,0.8),rgba(80,20,160,0.4))"></span>Nebula</div>
+      <div class="body-btn" onclick="setType('quasar',this)" data-type="quasar"><span class="dot" style="background:radial-gradient(circle at 35% 35%,#ffffff,#ffaaff,#880088)"></span>Quasar</div>
+      <div class="body-btn" onclick="setType('darkmatter',this)" data-type="darkmatter"><span class="dot" style="background:radial-gradient(circle,#2a2a55,#111130);border:1px solid #333366"></span>Dark Matter</div>
+    </div>
+  </div>
+
+  <div id="sel-info">
+    <div class="sel-name" id="sel-name">—</div>
+    <div class="sel-data" id="sel-data"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Explosions <span style="color:#2a1a0a">▸ select body first</span></div>
+    <button class="action-btn explode-btn" onclick="triggerExplosion('supernova')"><span class="ab-icon">💥</span>Supernova</button>
+    <button class="action-btn explode-btn" onclick="triggerExplosion('hypernova')"><span class="ab-icon">🌟</span>Hypernova</button>
+    <button class="action-btn explode-btn" onclick="triggerExplosion('gamma')"><span class="ab-icon">⚡</span>Gamma-Ray Burst</button>
+    <button class="action-btn explode-btn" onclick="triggerExplosion('nova')"><span class="ab-icon">🔥</span>Nova</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Properties</div>
+    <div class="ctrl">
+      <div class="ctrl-row"><span class="ctrl-label">MASS</span><span class="ctrl-val" id="massval">1.0 M</span></div>
+      <input type="range" id="massSlider" min="0.1" max="100" step="0.1" value="1">
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-row"><span class="ctrl-label">VELOCITY</span><span class="ctrl-val" id="velval">1.0×</span></div>
+      <input type="range" id="velSlider" min="0" max="5" step="0.1" value="1">
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Simulation</div>
+    <div class="ctrl">
+      <div class="ctrl-row"><span class="ctrl-label">TIME SCALE</span></div>
+      <div class="speed-row" id="speedRow">
+        <div class="spd-btn" onclick="setSpeed(0.1,this)">0.1×</div>
+        <div class="spd-btn active" onclick="setSpeed(1,this)">1×</div>
+        <div class="spd-btn" onclick="setSpeed(3,this)">3×</div>
+        <div class="spd-btn" onclick="setSpeed(8,this)">8×</div>
+      </div>
+    </div>
+    <div class="ctrl" style="margin-top:8px">
+      <div class="ctrl-row"><span class="ctrl-label">GRAVITY</span><span class="ctrl-val" id="gravval">1.0 G</span></div>
+      <input type="range" id="gravSlider" min="0.1" max="10" step="0.1" value="1">
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">View</div>
+    <button class="action-btn" onclick="toggleTrails()"><span class="ab-icon">〰</span>Trails: <span id="trailLabel">On</span></button>
+    <button class="action-btn" onclick="toggleBloom()"><span class="ab-icon">✦</span>Bloom: <span id="bloomLabel">On</span></button>
+    <button class="action-btn" onclick="togglePause()" id="pauseBtn"><span class="ab-icon">⏸</span>Pause</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Scenarios</div>
+    <button class="action-btn" onclick="addSolarSystem()"><span class="ab-icon">☀</span>Solar System</button>
+    <button class="action-btn" onclick="addGalaxyCluster()"><span class="ab-icon">🌀</span>Galaxy Cluster</button>
+    <button class="action-btn" onclick="addBinaryStars()"><span class="ab-icon">⭐</span>Binary Stars</button>
+    <button class="action-btn danger-btn" onclick="bigBang()"><span class="ab-icon">💥</span>Big Bang</button>
+    <button class="action-btn danger-btn" onclick="clearAll()"><span class="ab-icon">✕</span>Clear All</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-item"><span class="stat-num" id="statBodies">0</span><span class="stat-lbl">Bodies</span></div>
+    <div class="stat-item"><span class="stat-num" id="statPart">0</span><span class="stat-lbl">Particles</span></div>
+    <div class="stat-item"><span class="stat-num" id="statFps">60</span><span class="stat-lbl">FPS</span></div>
+  </div>
+  <div class="hint-text">Click → place body<br>Drag → launch with velocity<br>Click body → select / inspect</div>
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// Offscreen canvases
+let trailCanvas = document.createElement('canvas');
+let trailCtx = trailCanvas.getContext('2d');
+let glowCanvas = document.createElement('canvas');
+let glowCtx = glowCanvas.getContext('2d');
+let bgCanvas = document.createElement('canvas');
+let bgDrawn = false;
+
+let bodies=[], particles=[], shockwaves=[];
+let trails=true, bloom=true, paused=false;
+let timeSpeed=1, gravG=1;
+let selectedType='planet', massVal=1, velMult=1;
+let dragStart=null, mousePos={x:0,y:0}, selectedBody=null;
+let fps=60, fpsAcc=0, fpsFrames=0;
+
+// ── Type definitions ─────────────────────────────────────────
+const TYPES={
+  planet:    {coreColor:'#4a8cee',atmColor:'rgba(100,160,255,0.25)',glowColor:'rgba(60,120,255,0.12)',glowR:2.2,minR:6,maxR:18,label:'Planet',tempK:300},
+  star:      {coreColor:'#fff5cc',atmColor:'rgba(255,200,80,0.3)', glowColor:'rgba(255,160,0,0.18)',glowR:4,minR:11,maxR:28,label:'Star',tempK:5800},
+  giant:     {coreColor:'#ff7744',atmColor:'rgba(220,80,20,0.35)',glowColor:'rgba(200,50,0,0.18)',glowR:4.5,minR:18,maxR:40,label:'Red Giant',tempK:3500},
+  neutron:   {coreColor:'#ccf0ff',atmColor:'rgba(120,200,255,0.4)',glowColor:'rgba(80,160,255,0.35)',glowR:5,minR:4,maxR:8,label:'Neutron Star',tempK:1e6},
+  blackhole: {coreColor:'#000000',atmColor:null,glowColor:'rgba(140,0,255,0.3)',glowR:5,minR:13,maxR:32,label:'Black Hole',tempK:0},
+  asteroid:  {coreColor:'#887766',atmColor:null,glowColor:null,glowR:1,minR:3,maxR:8,label:'Asteroid',tempK:200},
+  comet:     {coreColor:'#ddf6ff',atmColor:'rgba(180,240,255,0.35)',glowColor:'rgba(100,200,255,0.15)',glowR:2.5,minR:3,maxR:9,label:'Comet',tempK:150},
+  nebula:    {coreColor:'#cc44ff',atmColor:null,glowColor:null,glowR:1,minR:32,maxR:64,label:'Nebula',tempK:100},
+  quasar:    {coreColor:'#ffffff',atmColor:'rgba(255,180,255,0.35)',glowColor:'rgba(220,100,255,0.25)',glowR:5,minR:8,maxR:20,label:'Quasar',tempK:1e8},
+  darkmatter:{coreColor:'#1a1a40',atmColor:null,glowColor:null,glowR:1,minR:22,maxR:55,label:'Dark Matter',tempK:0},
+  remnant:   {coreColor:'#ff6622',atmColor:'rgba(255,120,0,0.3)',glowColor:'rgba(255,60,0,0.2)',glowR:3,minR:4,maxR:10,label:'Remnant',tempK:8000},
+};
+
+// Temperature → blackbody color (simplified)
+function tempToColor(T){
+  if(T<=0) return '#000';
+  if(T<1000)  return `rgb(${Math.min(255,T/4|0)},${Math.min(100,T/15|0)},0)`;
+  if(T<3500)  return `rgb(255,${Math.min(255,((T-1000)/2500*180+40)|0)},0)`;
+  if(T<6000)  return `rgb(255,${Math.min(255,((T-3500)/2500*75+220)|0)},${Math.min(255,((T-4000)/2000*180)|0)})`;
+  if(T<10000) return `rgb(255,255,${Math.min(255,((T-6000)/4000*160+60)|0)})`;
+  return `rgb(${Math.max(180,255-((T-10000)/1e6*50)|0)},${Math.max(200,255-((T-10000)/1e6*30)|0)},255)`;
+}
+
+function massToRadius(mass,type){
+  const t=TYPES[type]||TYPES.planet;
+  return Math.max(t.minR,Math.min(t.maxR,t.minR+Math.cbrt(mass)*2.5));
+}
+function makeBody(x,y,vx,vy,mass,type){
+  return{x,y,vx,vy,mass,type,r:massToRadius(mass,type),ax:0,ay:0,age:0,id:Math.random(),pulsarAngle:0};
+}
+
+function resize(){
+  canvas.width=window.innerWidth-230;
+  canvas.height=window.innerHeight;
+  trailCanvas.width=canvas.width; trailCanvas.height=canvas.height;
+  glowCanvas.width=canvas.width;  glowCanvas.height=canvas.height;
+  bgDrawn=false;
+}
+resize();
+window.addEventListener('resize',resize);
+
+// ── Particle helpers ─────────────────────────────────────────
+function spawnP(x,y,count,opts){
+  for(let i=0;i<count;i++){
+    const a=Math.random()*Math.PI*2, spd=opts.s0+Math.random()*(opts.s1-opts.s0);
+    particles.push({
+      x,y,
+      vx:Math.cos(a)*spd+(opts.dvx||0),
+      vy:Math.sin(a)*spd+(opts.dvy||0),
+      life:1, decay:opts.dc||(0.006+Math.random()*0.018),
+      r:opts.r0+Math.random()*(opts.r1-opts.r0),
+      color:Array.isArray(opts.c)?opts.c[Math.floor(Math.random()*opts.c.length)]:opts.c,
+      glow:opts.glow||false,
+    });
+  }
+}
+function spawnSW(x,y,maxR,color,dur){
+  shockwaves.push({x,y,r:2,maxR,color,life:1,dur,speed:maxR/(dur*60)});
+}
+
+// ── Explosion logic ──────────────────────────────────────────
+function explode(body,kind){
+  const x=body.x,y=body.y,bvx=body.vx,bvy=body.vy;
+  if(kind==='supernova'){
+    spawnSW(x,y,380,'#ffeeaa',1.8); spawnSW(x,y,200,'#ffffff',0.8);
+    spawnP(x,y,250,{s0:2,s1:12,r0:1,r1:4,dc:0.0035,c:['#ffff99','#ffdd44','#ff9911','#ff5500','#ffffff','#ffccaa'],dvx:bvx,dvy:bvy,glow:true});
+    spawnP(x,y,80,{s0:0.3,s1:4,r0:2,r1:8,dc:0.0018,c:['#ff6600','#cc3300','#ff9944'],dvx:bvx,dvy:bvy});
+    for(let i=0;i<6;i++){const a=Math.random()*Math.PI*2,s=1.5+Math.random()*3;bodies.push(makeBody(x+Math.cos(a)*body.r,y+Math.sin(a)*body.r,bvx+Math.cos(a)*s,bvy+Math.sin(a)*s,0.3+Math.random()*.8,'remnant'));}
+    bodies.push(makeBody(x,y,bvx,bvy,body.mass*0.25,'neutron'));
+    return true;
+  }
+  if(kind==='hypernova'){
+    spawnSW(x,y,750,'#ffffff',2.8); spawnSW(x,y,500,'#aaddff',2.2); spawnSW(x,y,300,'#ff88ff',1.5);
+    spawnP(x,y,450,{s0:4,s1:18,r0:1,r1:5,dc:0.0025,c:['#ffffff','#ffddff','#ff99ff','#ffdd44','#ff5500','#00ccff','#aaffff'],dvx:bvx,dvy:bvy,glow:true});
+    spawnP(x,y,150,{s0:1,s1:7,r0:3,r1:11,dc:0.0012,c:['#ff7700','#dd00cc','#ff22ff'],dvx:bvx,dvy:bvy});
+    bodies.push(makeBody(x,y,bvx,bvy,body.mass*0.6,'blackhole'));
+    return true;
+  }
+  if(kind==='nova'){
+    spawnSW(x,y,200,'#ffaa44',1.2);
+    spawnP(x,y,120,{s0:1.5,s1:8,r0:1,r1:3,dc:0.006,c:['#ffff99','#ffcc44','#ff9944','#ffffff'],dvx:bvx,dvy:bvy,glow:true});
+    return false;
+  }
+  if(kind==='gamma'){
+    spawnSW(x,y,280,'#00ffff',1.3);
+    for(let sign of[-1,1]){
+      for(let i=0;i<140;i++){
+        const spread=(Math.random()-.5)*0.5,spd=9+Math.random()*13;
+        particles.push({x,y,vx:bvx+Math.cos(spread)*spd*sign,vy:bvy+Math.sin(spread)*spd*sign,life:1,decay:0.004+Math.random()*0.004,r:1+Math.random()*2,color:['#00ffff','#88ffff','#ffffff','#00aaff'][Math.floor(Math.random()*4)],glow:true});
+      }
+    }
+    return false;
+  }
+  return false;
+}
+
+function triggerExplosion(kind){
+  if(!selectedBody){alert('Select a body first by clicking on it.');return;}
+  const idx=bodies.indexOf(selectedBody);
+  if(idx===-1)return;
+  const destroy=explode(selectedBody,kind);
+  if(destroy) bodies.splice(idx,1);
+  selectedBody=null; updateSelInfo();
+}
+
+// ── Scenarios ────────────────────────────────────────────────
+function addSolarSystem(){
+  const cx=canvas.width/2,cy=canvas.height/2;
+  bodies.push(makeBody(cx,cy,0,0,25,'star'));
+  [{d:65,m:0.35},{d:100,m:0.8},{d:148,m:1.0},{d:190,m:0.5},{d:255,m:6},{d:325,m:4},{d:390,m:2.5},{d:440,m:1.5}].forEach(p=>{
+    const a=Math.random()*Math.PI*2,v=Math.sqrt(gravG*25/p.d);
+    bodies.push(makeBody(cx+Math.cos(a)*p.d,cy+Math.sin(a)*p.d,-Math.sin(a)*v,Math.cos(a)*v,p.m,'planet'));
+  });
+  for(let i=0;i<14;i++){const d=215+Math.random()*30,a=Math.random()*Math.PI*2,v=Math.sqrt(gravG*25/d)*(0.88+Math.random()*0.24);bodies.push(makeBody(cx+Math.cos(a)*d,cy+Math.sin(a)*d,-Math.sin(a)*v+(Math.random()-.5)*.4,Math.cos(a)*v+(Math.random()-.5)*.4,0.04+Math.random()*.18,'asteroid'));}
+  for(let i=0;i<5;i++){const d=150+Math.random()*320,a=Math.random()*Math.PI*2,v=Math.sqrt(gravG*25/d)*.9;bodies.push(makeBody(cx+Math.cos(a)*d,cy+Math.sin(a)*d,-Math.sin(a)*v+(Math.random()-.5)*2,Math.cos(a)*v+(Math.random()-.5)*2,0.08+Math.random()*.25,'comet'));}
+}
+function addGalaxyCluster(){
+  const cx=canvas.width/2,cy=canvas.height/2;
+  bodies.push(makeBody(cx,cy,0,0,100,'blackhole'));
+  const ts=['star','planet','giant','asteroid','neutron','comet','remnant'];
+  for(let i=0;i<40;i++){const a=Math.random()*Math.PI*2,d=55+Math.random()*340,v=Math.sqrt(gravG*100/d)*(0.8+Math.random()*0.4),t=ts[Math.floor(Math.random()*ts.length)];bodies.push(makeBody(cx+Math.cos(a)*d,cy+Math.sin(a)*d,-Math.sin(a)*v,Math.cos(a)*v,0.2+Math.random()*6,t));}
+  bodies.push(makeBody(cx+80,cy-100,0,0,1.2,'nebula'));
+  bodies.push(makeBody(cx-130,cy+70,0,0,20,'darkmatter'));
+}
+function addBinaryStars(){
+  const cx=canvas.width/2,cy=canvas.height/2,d=90;
+  const v=Math.sqrt(gravG*20/d)*0.5;
+  bodies.push(makeBody(cx-d/2,cy,0,-v,20,'star'));
+  bodies.push(makeBody(cx+d/2,cy,0,v,15,'giant'));
+  for(let i=0;i<6;i++){const a=Math.random()*Math.PI*2,r=160+Math.random()*120,vs=Math.sqrt(gravG*35/r);bodies.push(makeBody(cx+Math.cos(a)*r,cy+Math.sin(a)*r,-Math.sin(a)*vs,Math.cos(a)*vs,0.3+Math.random()*.8,'planet'));}
+}
+function bigBang(){
+  clearAll();
+  const cx=canvas.width/2,cy=canvas.height/2;
+  spawnSW(cx,cy,Math.max(canvas.width,canvas.height)*1.6,'#ffffff',3.5);
+  spawnSW(cx,cy,Math.max(canvas.width,canvas.height)*0.8,'#aaddff',2.5);
+  spawnP(cx,cy,600,{s0:5,s1:25,r0:1,r1:5,dc:0.0015,c:['#ffffff','#ffeecc','#ffcc44','#ff8800','#aaddff','#ff44ff','#44ffff'],glow:true});
+  const ts=['star','planet','asteroid','comet','giant','neutron','blackhole','nebula'];
+  for(let i=0;i<70;i++){const a=Math.random()*Math.PI*2,s=0.8+Math.random()*8,t=ts[Math.floor(Math.random()*ts.length)],m=0.2+Math.random()*12;bodies.push(makeBody(cx,cy,Math.cos(a)*s,Math.sin(a)*s,m,t));}
+}
+function clearAll(){bodies=[];particles=[];shockwaves=[];selectedBody=null;trailCtx.clearRect(0,0,trailCanvas.width,trailCanvas.height);updateSelInfo();}
+
+// ── UI ───────────────────────────────────────────────────────
+function setType(t,el){selectedType=t;document.querySelectorAll('.body-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');}
+function setSpeed(s,el){timeSpeed=s;document.querySelectorAll('.spd-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');}
+function toggleTrails(){trails=!trails;document.getElementById('trailLabel').textContent=trails?'On':'Off';if(!trails)trailCtx.clearRect(0,0,trailCanvas.width,trailCanvas.height);}
+function toggleBloom(){bloom=!bloom;document.getElementById('bloomLabel').textContent=bloom?'On':'Off';}
+function togglePause(){paused=!paused;document.getElementById('pauseBtn').innerHTML='<span class="ab-icon">'+(paused?'▶':'⏸')+'</span>'+(paused?'Resume':'Pause');}
+
+function updateSliderBg(el){const pct=(el.value-el.min)/(el.max-el.min)*100;el.style.setProperty('--pct',pct+'%');}
+document.getElementById('massSlider').oninput=e=>{massVal=parseFloat(e.target.value);document.getElementById('massval').textContent=massVal.toFixed(1)+' M';updateSliderBg(e.target);};
+document.getElementById('velSlider').oninput=e=>{velMult=parseFloat(e.target.value);document.getElementById('velval').textContent=velMult.toFixed(1)+'×';updateSliderBg(e.target);};
+document.getElementById('gravSlider').oninput=e=>{gravG=parseFloat(e.target.value);document.getElementById('gravval').textContent=gravG.toFixed(1)+' G';updateSliderBg(e.target);};
+[...document.querySelectorAll('input[type=range]')].forEach(updateSliderBg);
+
+function updateSelInfo(){
+  const el=document.getElementById('sel-info');
+  if(!selectedBody){el.classList.remove('visible');return;}
+  el.classList.add('visible');
+  const b=selectedBody,T=TYPES[b.type];
+  document.getElementById('sel-name').textContent=T.label;
+  const spd=Math.hypot(b.vx,b.vy).toFixed(2);
+  document.getElementById('sel-data').innerHTML=
+    `Mass: ${b.mass.toFixed(2)} M<br>Radius: ${b.r.toFixed(1)} units<br>Speed: ${spd} u/s<br>Temp: ${T.tempK.toLocaleString()} K`;
+}
+
+// ── Input ────────────────────────────────────────────────────
+canvas.addEventListener('mousedown',e=>{
+  const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  let hit=null;
+  for(let b of bodies){if(Math.hypot(b.x-mx,b.y-my)<b.r+10){hit=b;break;}}
+  if(hit){selectedBody=(selectedBody===hit)?null:hit;updateSelInfo();return;}
+  selectedBody=null;updateSelInfo();
+  dragStart={x:mx,y:my};
+});
+canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();mousePos={x:e.clientX-r.left,y:e.clientY-r.top};});
+canvas.addEventListener('mouseup',e=>{
+  if(!dragStart)return;
+  const r=canvas.getBoundingClientRect(),ex=e.clientX-r.left,ey=e.clientY-r.top;
+  bodies.push(makeBody(dragStart.x,dragStart.y,(ex-dragStart.x)*0.05*velMult,(ey-dragStart.y)*0.05*velMult,massVal,selectedType));
+  dragStart=null;
+});
+canvas.addEventListener('mouseleave',()=>{dragStart=null;});
+
+// ── Physics ──────────────────────────────────────────────────
+function merge(i,j){
+  const a=bodies[i],b=bodies[j],tm=a.mass+b.mass;
+  spawnP((a.x+b.x)/2,(a.y+b.y)/2,50,{s0:1,s1:7,r0:1,r1:3,dc:0.01,c:['#ffcc44','#ff8800','#ffffff'],glow:true});
+  let nt=a.mass>=b.mass?a.type:b.type;
+  if(a.type==='blackhole'||b.type==='blackhole') nt='blackhole';
+  if((a.type==='star'||a.type==='giant')&&(b.type==='star'||b.type==='giant')&&tm>18){
+    const nb2=makeBody((a.x+b.x)/2,(a.y+b.y)/2,(a.vx+b.vx)/2,(a.vy+b.vy)/2,tm,'neutron');
+    bodies.splice(j,1);bodies.splice(i,1);
+    setTimeout(()=>{const idx2=bodies.indexOf(nb2);if(idx2>-1){explode(nb2,'supernova');bodies.splice(idx2,1);}},500);
+    bodies.push(nb2);if(selectedBody===a||selectedBody===b){selectedBody=null;updateSelInfo();}return;
+  }
+  if(selectedBody===a||selectedBody===b){selectedBody=null;updateSelInfo();}
+  const nb=makeBody((a.x*a.mass+b.x*b.mass)/tm,(a.y*a.mass+b.y*b.mass)/tm,(a.vx*a.mass+b.vx*b.mass)/tm,(a.vy*a.mass+b.vy*b.mass)/tm,tm,nt);
+  bodies.splice(j,1);bodies.splice(i,1);bodies.push(nb);
+}
+
+function physics(dt){
+  const n=bodies.length;
+  for(let i=0;i<n;i++){bodies[i].ax=0;bodies[i].ay=0;}
+  for(let i=0;i<n;i++){
+    for(let j=i+1;j<n;j++){
+      const dx=bodies[j].x-bodies[i].x,dy=bodies[j].y-bodies[i].y,d2=dx*dx+dy*dy;
+      const md=bodies[i].r+bodies[j].r;
+      if(d2<md*md*0.28){merge(i,j);return;}
+      const dist=Math.sqrt(d2)+0.5;
+      const mi=bodies[i].type==='darkmatter'?bodies[i].mass*3:bodies[i].mass;
+      const mj=bodies[j].type==='darkmatter'?bodies[j].mass*3:bodies[j].mass;
+      const f=gravG*mi*mj/d2,fx=f*dx/dist,fy=f*dy/dist;
+      bodies[i].ax+=fx/bodies[i].mass;bodies[i].ay+=fy/bodies[i].mass;
+      bodies[j].ax-=fx/bodies[j].mass;bodies[j].ay-=fy/bodies[j].mass;
+    }
+    // neutron pulsar
+    if(bodies[i].type==='neutron'&&Math.random()<0.18){
+      bodies[i].pulsarAngle=(bodies[i].pulsarAngle||0)+0.28;
+      for(let s of[-1,1]) particles.push({x:bodies[i].x,y:bodies[i].y,vx:Math.cos(bodies[i].pulsarAngle)*s*5.5+bodies[i].vx,vy:Math.sin(bodies[i].pulsarAngle)*s*5.5+bodies[i].vy,life:1,decay:0.022,r:1.5,color:'#99ddff',glow:true});
+    }
+    // quasar jets
+    if(bodies[i].type==='quasar'&&Math.random()<0.3){
+      for(let s of[-1,1]) particles.push({x:bodies[i].x,y:bodies[i].y,vx:(Math.random()-.5)*2+bodies[i].vx,vy:s*(8+Math.random()*6)+bodies[i].vy,life:1,decay:0.007,r:1.2+Math.random()*2,color:['#ffffff','#ffaaff','#cc88ff'][Math.floor(Math.random()*3)],glow:true});
+    }
+    // comet tail
+    if(bodies[i].type==='comet'&&Math.random()<0.65){
+      particles.push({x:bodies[i].x,y:bodies[i].y,vx:bodies[i].vx*-.45+(Math.random()-.5)*.7,vy:bodies[i].vy*-.45+(Math.random()-.5)*.7,life:1,decay:0.02,r:1.2+Math.random()*2.5,color:['#aaeeff','#88ccff','#ffffff','#cceeff'][Math.floor(Math.random()*4)],glow:false});
+    }
+    // black hole accretion
+    if(bodies[i].type==='blackhole'&&Math.random()<0.15){
+      const ang=Math.random()*Math.PI*2,dr=bodies[i].r*(1.6+Math.random()*1.2);
+      particles.push({x:bodies[i].x+Math.cos(ang)*dr,y:bodies[i].y+Math.sin(ang)*dr,vx:-Math.sin(ang)*2.5+bodies[i].vx,vy:Math.cos(ang)*2.5+bodies[i].vy,life:1,decay:0.03,r:1.2,color:['#cc88ff','#aa44ff','#ff88ff'][Math.floor(Math.random()*3)],glow:true});
+    }
+    // star surface flares
+    if((bodies[i].type==='star'||bodies[i].type==='giant')&&Math.random()<0.08){
+      const ang=Math.random()*Math.PI*2;
+      const sc=TYPES[bodies[i].type].coreColor;
+      particles.push({x:bodies[i].x+Math.cos(ang)*bodies[i].r,y:bodies[i].y+Math.sin(ang)*bodies[i].r,vx:Math.cos(ang)*(1+Math.random()*2)+bodies[i].vx,vy:Math.sin(ang)*(1+Math.random()*2)+bodies[i].vy,life:1,decay:0.03,r:1.5+Math.random()*2,color:sc,glow:true});
+    }
+    bodies[i].vx+=bodies[i].ax*dt;bodies[i].vy+=bodies[i].ay*dt;
+    bodies[i].x+=bodies[i].vx*dt;bodies[i].y+=bodies[i].vy*dt;
+    bodies[i].age++;
+  }
+  for(let p of particles){p.x+=p.vx;p.y+=p.vy;p.vx*=0.985;p.vy*=0.985;p.life-=p.decay;}
+  particles=particles.filter(p=>p.life>0);
+  if(particles.length>10000) particles=particles.slice(-10000);
+  for(let s of shockwaves){s.r+=s.speed;s.life=1-s.r/s.maxR;}
+  shockwaves=shockwaves.filter(s=>s.life>0);
+  bodies=bodies.filter(b=>b.x>-1500&&b.x<canvas.width+1500&&b.y>-1500&&b.y<canvas.height+1500);
+}
+
+// ── Background: deep space with star field + dust lanes ──────
+function buildBg(){
+  bgCanvas.width=canvas.width; bgCanvas.height=canvas.height;
+  const bc=bgCanvas.getContext('2d');
+  // deep space black
+  bc.fillStyle='#00000c'; bc.fillRect(0,0,bgCanvas.width,bgCanvas.height);
+  // subtle dust lanes
+  const dustCols=['rgba(30,15,50,0.18)','rgba(10,25,50,0.14)','rgba(50,20,30,0.1)','rgba(15,30,40,0.12)'];
+  for(let i=0;i<8;i++){
+    const gx=Math.random()*bgCanvas.width,gy=Math.random()*bgCanvas.height;
+    const gr=bc.createRadialGradient(gx,gy,0,gx,gy,120+Math.random()*250);
+    gr.addColorStop(0,dustCols[i%4]); gr.addColorStop(1,'rgba(0,0,0,0)');
+    bc.fillStyle=gr; bc.fillRect(0,0,bgCanvas.width,bgCanvas.height);
+  }
+  // milky way band
+  const mw=bc.createLinearGradient(bgCanvas.width*.1,bgCanvas.height*.25,bgCanvas.width*.9,bgCanvas.height*.75);
+  mw.addColorStop(0,'rgba(180,160,230,0)'); mw.addColorStop(.4,'rgba(180,160,230,0.045)'); mw.addColorStop(.5,'rgba(200,180,255,0.07)'); mw.addColorStop(.6,'rgba(180,160,230,0.045)'); mw.addColorStop(1,'rgba(180,160,230,0)');
+  bc.fillStyle=mw; bc.fillRect(0,0,bgCanvas.width,bgCanvas.height);
+  // distant galaxies (tiny blobs)
+  for(let i=0;i<12;i++){
+    const gx=Math.random()*bgCanvas.width,gy=Math.random()*bgCanvas.height;
+    const gr=bc.createRadialGradient(gx,gy,0,gx,gy,3+Math.random()*8);
+    gr.addColorStop(0,'rgba(200,190,255,0.2)'); gr.addColorStop(1,'rgba(0,0,0,0)');
+    bc.fillStyle=gr; bc.fillRect(0,0,bgCanvas.width,bgCanvas.height);
+  }
+  // stars of varying sizes and warmth
+  const starWarm=['rgba(255,255,220,','rgba(255,240,200,','rgba(200,220,255,','rgba(255,255,255,','rgba(220,200,255,'];
+  for(let i=0;i<700;i++){
+    const x=Math.abs((i*7919*1664525+1013904223)%(bgCanvas.width*10))%(bgCanvas.width);
+    const y=Math.abs((i*6271*22695477+1013904223)%(bgCanvas.height*10))%(bgCanvas.height);
+    const size=i%12===0?2.2:i%5===0?1.3:i%2===0?0.9:0.5;
+    const alpha=0.4+Math.random()*0.6;
+    const col=starWarm[i%5];
+    if(size>1.2){
+      // tiny glow around bright stars
+      const sg=bc.createRadialGradient(x,y,0,x,y,size*4);
+      sg.addColorStop(0,col+'0.15)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+      bc.fillStyle=sg; bc.fillRect(x-size*4,y-size*4,size*8,size*8);
+    }
+    bc.beginPath(); bc.arc(x,y,size,0,Math.PI*2);
+    bc.fillStyle=col+alpha+')'; bc.fill();
+  }
+  bgDrawn=true;
+}
+
+// ── Draw body with UB2-style visuals ─────────────────────────
+function drawBody(b){
+  const T=TYPES[b.type]||TYPES.planet;
+  const sel=b===selectedBody;
+
+  // SELECTION ring
+  if(sel){
+    ctx.save();
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r+9,0,Math.PI*2);
+    ctx.strokeStyle='rgba(80,160,255,0.7)'; ctx.lineWidth=1; ctx.setLineDash([5,4]); ctx.stroke();
+    ctx.setLineDash([]); ctx.restore();
+  }
+
+  // ── NEBULA ──
+  if(b.type==='nebula'){
+    ctx.save();
+    const steps=4;
+    for(let s=steps;s>=0;s--){
+      const fr=s/steps, rr=b.r*(0.3+fr*.7);
+      const ng=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,rr);
+      const hue=(b.id*137.5)%360|0;
+      ng.addColorStop(0,`hsla(${hue},70%,60%,${0.35*(1-fr)+0.1})`);
+      ng.addColorStop(1,`hsla(${hue+40},60%,30%,0)`);
+      ctx.beginPath(); ctx.arc(b.x,b.y,rr,0,Math.PI*2); ctx.fillStyle=ng; ctx.fill();
+    }
+    ctx.restore(); return;
+  }
+  // ── DARK MATTER ──
+  if(b.type==='darkmatter'){
+    ctx.save(); ctx.globalAlpha=0.22;
+    const dg=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    dg.addColorStop(0,'rgba(80,80,200,0.5)'); dg.addColorStop(.6,'rgba(30,30,100,0.2)'); dg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle=dg; ctx.fill();
+    ctx.globalAlpha=1; ctx.restore(); return;
+  }
+  // ── BLACK HOLE ──
+  if(b.type==='blackhole'){
+    // photon sphere glow
+    const pg=ctx.createRadialGradient(b.x,b.y,b.r*0.8,b.x,b.y,b.r*4.5);
+    pg.addColorStop(0,'rgba(160,0,255,0.45)'); pg.addColorStop(.35,'rgba(100,0,200,0.2)'); pg.addColorStop(.7,'rgba(40,0,100,0.08)'); pg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r*4.5,0,Math.PI*2); ctx.fillStyle=pg; ctx.fill();
+    // accretion disk (ellipse)
+    ctx.save(); ctx.translate(b.x,b.y); ctx.scale(1,0.28);
+    const ag=ctx.createRadialGradient(0,0,b.r*.9,0,0,b.r*3);
+    ag.addColorStop(0,'rgba(255,140,0,0.9)'); ag.addColorStop(.3,'rgba(255,80,0,0.5)'); ag.addColorStop(.6,'rgba(180,0,220,0.25)'); ag.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(0,0,b.r*3,0,Math.PI*2); ctx.fillStyle=ag; ctx.fill();
+    ctx.restore();
+    // event horizon
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle='#000'; ctx.fill();
+    ctx.strokeStyle='rgba(160,0,255,0.8)'; ctx.lineWidth=1.5; ctx.stroke();
+    return;
+  }
+
+  // ── BLOOM GLOW LAYER ──
+  if(bloom && T.glowColor && T.glowR>1){
+    const gr=b.r*T.glowR;
+    const gg=ctx.createRadialGradient(b.x,b.y,b.r*.5,b.x,b.y,gr);
+    gg.addColorStop(0,T.glowColor.replace(')',',0.9)').replace('rgba','rgba')||T.glowColor);
+    gg.addColorStop(.4,T.glowColor);
+    gg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(b.x,b.y,gr,0,Math.PI*2); ctx.fillStyle=gg; ctx.fill();
+  }
+
+  // ── ATMOSPHERE ──
+  if(T.atmColor){
+    const ag=ctx.createRadialGradient(b.x,b.y,b.r*.7,b.x,b.y,b.r*1.5);
+    ag.addColorStop(0,T.atmColor); ag.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r*1.5,0,Math.PI*2); ctx.fillStyle=ag; ctx.fill();
+  }
+
+  // ── CORE ──
+  ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+  let fill;
+  if(b.type==='planet'){
+    fill=ctx.createRadialGradient(b.x-b.r*.38,b.y-b.r*.38,0,b.x+b.r*.1,b.y+b.r*.1,b.r*1.05);
+    fill.addColorStop(0,'#c8deff'); fill.addColorStop(.3,'#6aaeff'); fill.addColorStop(.65,'#1a5ec8'); fill.addColorStop(1,'#071840');
+  } else if(b.type==='star'){
+    fill=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    fill.addColorStop(0,'#ffffff'); fill.addColorStop(.2,'#fffacc'); fill.addColorStop(.6,'#ffdd44'); fill.addColorStop(1,'#ff8800');
+  } else if(b.type==='giant'){
+    fill=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    fill.addColorStop(0,'#ffd0b0'); fill.addColorStop(.3,'#ff8855'); fill.addColorStop(.7,'#cc3311'); fill.addColorStop(1,'#550800');
+    // surface bands
+    ctx.fill();
+    ctx.save();
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.clip();
+    for(let band=0;band<4;band++){
+      const by=b.y-b.r+b.r*.3+band*b.r*.45;
+      ctx.fillStyle=`rgba(${80+band*20},${20+band*8},0,0.18)`;
+      ctx.fillRect(b.x-b.r,by,b.r*2,b.r*.18);
+    }
+    ctx.restore(); fill=null;
+  } else if(b.type==='neutron'){
+    fill=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    fill.addColorStop(0,'#ffffff'); fill.addColorStop(.4,'#ccf4ff'); fill.addColorStop(.8,'#66ccff'); fill.addColorStop(1,'#1144bb');
+  } else if(b.type==='asteroid'){
+    fill=ctx.createRadialGradient(b.x-b.r*.3,b.y-b.r*.3,0,b.x,b.y,b.r);
+    fill.addColorStop(0,'#aa9988'); fill.addColorStop(.5,'#776655'); fill.addColorStop(1,'#332211');
+  } else if(b.type==='comet'){
+    fill=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    fill.addColorStop(0,'#ffffff'); fill.addColorStop(.4,'#ddf6ff'); fill.addColorStop(.8,'#88ccee'); fill.addColorStop(1,'#224455');
+  } else if(b.type==='quasar'){
+    fill=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    fill.addColorStop(0,'#ffffff'); fill.addColorStop(.3,'#ffddff'); fill.addColorStop(.7,'#ee88ff'); fill.addColorStop(1,'#660077');
+  } else if(b.type==='remnant'){
+    fill=ctx.createRadialGradient(b.x-b.r*.3,b.y-b.r*.3,0,b.x,b.y,b.r);
+    fill.addColorStop(0,'#ffdd99'); fill.addColorStop(.4,'#ff7722'); fill.addColorStop(1,'#771100');
+  } else {
+    fill=T.coreColor;
+  }
+  if(fill){ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle=fill; ctx.fill();}
+
+  // specular highlight
+  if(b.type!=='star'&&b.type!=='giant'&&b.type!=='asteroid'){
+    ctx.save();
+    const sg=ctx.createRadialGradient(b.x-b.r*.4,b.y-b.r*.4,0,b.x,b.y,b.r);
+    sg.addColorStop(0,'rgba(255,255,255,0.22)'); sg.addColorStop(.45,'rgba(255,255,255,0.06)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle=sg; ctx.fill();
+    ctx.restore();
+  }
+
+  // rings for large planets
+  if(b.type==='planet'&&b.r>12){
+    ctx.save(); ctx.translate(b.x,b.y); ctx.scale(1,0.32);
+    const rg=ctx.createRadialGradient(0,0,b.r*1.25,0,0,b.r*2.2);
+    rg.addColorStop(0,'rgba(180,200,240,0.35)'); rg.addColorStop(.5,'rgba(140,170,220,0.15)'); rg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(0,0,b.r*2.2,0,Math.PI*2);
+    ctx.arc(0,0,b.r*1.18,0,Math.PI*2,true);
+    ctx.fillStyle=rg; ctx.fill(); ctx.restore();
+  }
+
+  // body label (UB2-style subtle white text)
+  ctx.fillStyle='rgba(160,180,220,0.5)';
+  ctx.font='10px Rajdhani,sans-serif';
+  ctx.fillText(T.label,b.x+b.r+5,b.y+4);
+}
+
+function drawParticle(p){
+  if(p.life<=0) return;
+  ctx.save();
+  if(p.glow&&bloom){
+    ctx.globalAlpha=Math.max(0,p.life)*0.4;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r*3*p.life,0,Math.PI*2);
+    ctx.fillStyle=p.color; ctx.fill();
+  }
+  ctx.globalAlpha=Math.max(0,p.life);
+  ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(0.3,p.r*p.life),0,Math.PI*2);
+  ctx.fillStyle=p.color; ctx.fill();
+  ctx.restore();
+}
+
+function drawShockwave(s){
+  ctx.save();
+  // outer fade ring
+  ctx.globalAlpha=s.life*0.18;
+  ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+  ctx.fillStyle=s.color; ctx.fill();
+  // bright edge
+  ctx.globalAlpha=s.life*0.75;
+  ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+  ctx.strokeStyle=s.color; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.restore();
+}
+
+// ── Main loop ────────────────────────────────────────────────
+let last=performance.now(), fpsT=0;
+function loop(now){
+  const rawDt=Math.min((now-last)/1000,0.05); last=now;
+  // fps
+  fpsT+=rawDt; fpsAcc++; if(fpsT>0.5){fps=Math.round(fpsAcc/fpsT);fpsT=0;fpsAcc=0;}
+
+  if(!bgDrawn||bgCanvas.width!==canvas.width||bgCanvas.height!==canvas.height) buildBg();
+  ctx.drawImage(bgCanvas,0,0);
+
+  if(!paused){
+    const steps=Math.max(1,Math.ceil(timeSpeed*2));
+    const dt=rawDt*timeSpeed/steps*60;
+    for(let s=0;s<steps;s++) physics(dt);
+
+    if(trails){
+      trailCtx.fillStyle='rgba(0,0,8,0.042)';
+      trailCtx.fillRect(0,0,trailCanvas.width,trailCanvas.height);
+      bodies.forEach(b=>{
+        if(b.type==='nebula'||b.type==='darkmatter') return;
+        const T=TYPES[b.type]||TYPES.planet;
+        trailCtx.beginPath(); trailCtx.arc(b.x,b.y,Math.max(1,b.r*.3),0,Math.PI*2);
+        trailCtx.fillStyle=T.coreColor; trailCtx.globalAlpha=0.55; trailCtx.fill(); trailCtx.globalAlpha=1;
+      });
+    }
+  }
+
+  if(trails) ctx.drawImage(trailCanvas,0,0);
+  shockwaves.forEach(drawShockwave);
+  particles.forEach(drawParticle);
+  bodies.forEach(drawBody);
+
+  // drag preview
+  if(dragStart){
+    const dx=mousePos.x-dragStart.x, dy=mousePos.y-dragStart.y;
+    const len=Math.hypot(dx,dy);
+    ctx.save();
+    // velocity arrow
+    if(len>5){
+      ctx.strokeStyle='rgba(80,140,255,0.45)'; ctx.lineWidth=1.5; ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.moveTo(dragStart.x,dragStart.y); ctx.lineTo(mousePos.x,mousePos.y); ctx.stroke();
+      ctx.setLineDash([]);
+      // arrowhead
+      const ang=Math.atan2(dy,dx);
+      ctx.fillStyle='rgba(80,140,255,0.6)';
+      ctx.beginPath(); ctx.moveTo(mousePos.x,mousePos.y);
+      ctx.lineTo(mousePos.x-10*Math.cos(ang-.4),mousePos.y-10*Math.sin(ang-.4));
+      ctx.lineTo(mousePos.x-10*Math.cos(ang+.4),mousePos.y-10*Math.sin(ang+.4));
+      ctx.fill();
+    }
+    // ghost body
+    const ghost=makeBody(dragStart.x,dragStart.y,0,0,massVal,selectedType);
+    ctx.globalAlpha=0.5; drawBody(ghost); ctx.globalAlpha=1;
+    ctx.restore();
+  }
+
+  // selection info update
+  if(selectedBody) updateSelInfo();
+
+  document.getElementById('statBodies').textContent=bodies.length;
+  document.getElementById('statPart').textContent=particles.length;
+  document.getElementById('statFps').textContent=fps;
+  requestAnimationFrame(loop);
+}
+
+addSolarSystem();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
